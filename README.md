@@ -1,4 +1,4 @@
-# arduino-wifi-zone-controller
+# esp32c6-wifi-zone-controller
 
 credentials.h
 
