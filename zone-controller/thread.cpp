@@ -1,8 +1,6 @@
 #include "thread.h"
 #include "reset.h"
 
-bool threadReadyOn = false;
-bool threadDecomminsionPressed = false;
 int status = WL_IDLE_STATUS;     // the Wifi radio's status
 
 void initMatter() {
@@ -10,6 +8,7 @@ void initMatter() {
 }
 
 void connectThreadNetwork() {
+  updateStateCommissioningDevice();
   if (!Matter.isDeviceCommissioned()) {
     Log.traceln("Matter device is not commissioned");
     Log.traceln("Commission it to your Matter hub with the manual pairing code or QR code");
@@ -19,12 +18,7 @@ void connectThreadNetwork() {
     Log.traceln("Matter device is commissioned");
   }
   while (!Matter.isDeviceCommissioned()) {
-    if (threadReadyOn) {
-      updateStateOff();
-    } else {
-      updateStateCommissioningDevice();
-    }
-    threadReadyOn = !threadReadyOn;
+    updateStateHandler();
     delay(connectionWaitTime);    
     decommissionHandler();
   }
@@ -44,6 +38,7 @@ void connectThreadNetwork() {
 }
 
 void connectWiFi() {
+  updateStateConnecting();
   //String fv = WiFi.firmwareVersion();
   //if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
   //  Log.traceln("Please upgrade the firmware");
@@ -54,12 +49,7 @@ void connectWiFi() {
     Log.traceln("Connecting to WiFi: %s", ssid);
     status = WiFi.status();
     if (status == WL_CONNECTED) break;
-    if (threadReadyOn) {
-      updateStateOff();
-    } else {
-      updateStateConnecting();
-    }
-    threadReadyOn = !threadReadyOn;
+    updateStateHandler();
     delay(connectionWaitTime);    
     decommissionHandler(); 
   }
@@ -97,31 +87,21 @@ String macToString(byte mac[]) {
 
 void decommissionHandler() {
   if (digitalRead(BTN_BUILTIN) == LOW) {  //Push button pressed
+    updateStateBootPressed();
     // measures time pressed
     int startTime = millis();
     while (digitalRead(BTN_BUILTIN) == LOW) {
-      //delay(50);
-
       int elapsedTime = (millis() - startTime) / 1000.0;
-
       if (elapsedTime > 10) {
         Log.traceln("Decommissioning!");
         for (int i = 0; i < 10; i++) {
-          if (threadDecomminsionPressed) {
-            updateStateBootPressed();
-          } else {
-            updateStateOff();
-          }
-          threadDecomminsionPressed = !threadDecomminsionPressed;
+          updateStateHandler();
           delay(connectionWaitTime);
         };
-
         if (!Matter.isDeviceCommissioned()) {
           Log.traceln("Decommission done!");
-          updateStateOff();
         } else {
           Log.traceln("Matter device is commissioned-> Starting Decommission process");
-          updateStateOff();
           Matter.decommission();          
           Log.traceln("Decommission done!");
           ESP.restart();
@@ -129,6 +109,7 @@ void decommissionHandler() {
         break;
       }
     }
+    updateStateBootReleased();
   }
 }
 

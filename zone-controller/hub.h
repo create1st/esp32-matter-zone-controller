@@ -1,5 +1,5 @@
 #include <ArduinoLog.h>
-#include <MatterOnOffLight.h>
+#include <Matter.h>
 #include <Preferences.h>
 #include "ledstate.h"
 #include "buttonstate.h"
@@ -13,6 +13,7 @@
 void initHub();
 void discoverDevices();
 void hubLoop();
-bool setLightOnOff(bool state);
+bool matterStateChanged(int zone, bool state);
+void IRAM_ATTR hardwareStateChanged(int zone);
 
 #endif

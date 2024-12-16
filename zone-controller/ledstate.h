@@ -6,6 +6,7 @@
 #define LED_STATE_H_
 
 void initilizeLedStateReader();
-ZoneState getLedState();
+bool getLedState(int zone);
+int getLedPin(int zone);
 
 #endif

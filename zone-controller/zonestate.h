@@ -3,8 +3,4 @@
 
 const int MAX_ZONES = 4;
 
-struct ZoneState {
-  bool enabled[MAX_ZONES]; // activated
-};
-
 #endif

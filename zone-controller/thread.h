@@ -6,7 +6,7 @@
 
 // Set up the onboard button
 #ifndef BTN_BUILTIN
-#define BTN_BUILTIN 9  // Set your pin here. Using BOOT Button. C6/C3 use GPIO9. // BTN_BUILTIN
+#define BTN_BUILTIN D0
 #endif
 
 #ifndef THREAD_H_

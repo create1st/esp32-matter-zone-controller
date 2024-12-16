@@ -1,5 +1,3 @@
-#include <Hashtable.h>
-
 #include <ArduinoLog.h>
 #include "logging.h"
 #include "thread.h"
@@ -14,32 +12,24 @@ bool readyOn = false;
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BTN_BUILTIN, INPUT_PULLUP);
-
+  initStatusLed();
+  
   updateStateOn();
   connectSerial();
+  initilizeLedStateReader();
+  initilizeButtonStateWriter();
   connectWiFi();
   initHub();
   initMatter();
   connectThreadNetwork();
   discoverDevices();
   updateStateInitStage1();
-  initilizeLedStateReader();
-  updateStateInitStage2();
-  initilizeButtonStateWriter();  
+  updateStateInitStage2();  
   updateStateReady();
 }
 
 void loop() {  
-  unsigned long current = millis();
-  if (current - statusTimer >= 2000) {
-    readyOn = !readyOn;
-    statusTimer = current;
-    if (readyOn) {
-      updateStateReady();
-    } else {
-      updateStateOff();
-    }
-  }
+  updateStateHandler();
   hubLoop();
   decommissionHandler();
 }
