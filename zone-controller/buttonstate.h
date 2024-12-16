@@ -8,6 +8,7 @@
 const int pushButtonDelay = 500; // msec
 
 void initilizeButtonStateWriter();
-void setButtonState(ZoneState zoneState);
+void setButtonState(int zone, bool state);
+void pushButton(int zone);
 
 #endif

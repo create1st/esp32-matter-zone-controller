@@ -1,11 +1,15 @@
 #include "hub.h"
+#include <FunctionalInterrupt.h>
 
 MatterOnOffLight matterButtons[MAX_ZONES];
 Preferences lastStatePref[MAX_ZONES];
-ZoneState lastZoneState;
+bool zoneStateChanged[MAX_ZONES];
 
 bool hubReadyOn = false;
 char fmtStrBuffer[20];
+
+void IRAM_ATTR isr() {
+}
 
 void initHub() {
   for (int i = 0; i < MAX_ZONES; i++) {
@@ -13,61 +17,48 @@ void initHub() {
     lastStatePref[i].begin(fmtStrBuffer, false);
     sprintf(fmtStrBuffer, "ZoneState%d", i);
     bool lastOnOffState = lastStatePref[i].getBool(fmtStrBuffer, true);
-//    matterButtons[i].begin();
     matterButtons[i].begin(lastOnOffState);
-    matterButtons[i].onChangeOnOff(setLightOnOff);
+    matterButtons[i].onChangeOnOff(std::bind(matterStateChanged, i, std::placeholders::_1));    
+    zoneStateChanged[i] = false;
+    attachInterrupt(getLedPin(i), std::bind(&hardwareStateChanged, i), CHANGE);    
   }
 }
 
 void discoverDevices() {
   Log.traceln("Waiting for Matter device discovery...");
-  //for (int i = 0; i < MAX_ZONES; i++) {
-  //  Log.traceln("Waiting for Matter device discovery: %d", i);
-  //  while (!matterButtons[i].is_online()) {      
-  //    if (hubReadyOn) {
-  //      updateStateOff();
-  //    } else {
-  //      updateStateOnLine();
-  //    }
-  //    hubReadyOn = !hubReadyOn;
-  //    delay(connectionWaitTime);      
-  //    decommissionHandler();
-  //  }
-  //}
-  Log.traceln("Matter device is now online");
-  ZoneState zoneState = getLedState();
   for (int i = 0; i < MAX_ZONES; i++) {
-    matterButtons[i].setOnOff(zoneState.enabled[i]);
-    lastZoneState.enabled[i] = zoneState.enabled[i];
-    Log.traceln("Matter button set state %d = %t", i, zoneState.enabled[i]);
+    bool state = getLedState(i);
+    matterButtons[i].setOnOff(state);
+    Log.traceln("Matter button set state %d = %s", i, state ? "ON" : "OFF");
   }
 }
 
-bool setLightOnOff(bool state) {
-  Log.traceln("User Callback :: New Light State = %s\r\n", state ? "ON" : "OFF");
-//  if (state) {
-//    digitalWrite(ledPin, HIGH);
-//  } else {
-//    digitalWrite(ledPin, LOW);
-//  }
-  // store last OnOff state for when the Light is restarted / power goes off
-  //lastStatePref.putBool("lastOnOffState", state);
+bool matterStateChanged(int zone, bool state) {
+  Log.traceln("Matter state changed for zone %d = %s\r\n", zone, state ? "ON" : "OFF");
+  // store last zone state
+  sprintf(fmtStrBuffer, "ZoneState%d", zone);
+  lastStatePref[zone].putBool(fmtStrBuffer, state);  
+  bool currentState = getLedState(zone);
+  if (currentState != state) {
+    //setButtonState(zone, state);
+    pushButton(zone);
+    getLedState(zone);
+  }
   // This callback must return the success state to Matter core
   return true;
 }
 
+void IRAM_ATTR hardwareStateChanged(int zone) {
+  zoneStateChanged[zone] = true;
+}
+
 void hubLoop() {
-  ZoneState zoneState = getLedState();
-  ZoneState buttonState;
   for (int i = 0; i < MAX_ZONES; i++) {
-    buttonState.enabled[i] = lastZoneState.enabled[i] != matterButtons[i].getOnOff(); // UI state changed, press the real button
-    if (zoneState.enabled[i] != lastZoneState.enabled[i] && !buttonState.enabled[i]) {
-      Log.traceln("LED state changed %d = %t", i, zoneState.enabled[i]);
-      matterButtons[i].setOnOff(zoneState.enabled[i]);
-      sprintf(fmtStrBuffer, "ZoneState%d", i);    
-      lastStatePref[i].putBool(fmtStrBuffer, zoneState.enabled[i]);
+    if (zoneStateChanged[i]) {
+      zoneStateChanged[i] = false;
+      bool state = getLedState(i);
+      Log.traceln("Hardware state changed for zone %d = %s\r\n", i, state ? "ON" : "OFF");
+      matterButtons[i].setOnOff(state);
     }
-    lastZoneState.enabled[i] = zoneState.enabled[i];
   }
-  setButtonState(buttonState);
 }

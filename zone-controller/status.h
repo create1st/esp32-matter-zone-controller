@@ -3,6 +3,8 @@
 #ifndef STATUS_H_
 #define STATUS_H_
 
+void initStatusLed();
+void updateStateHandler();
 void updateLedColor(uint8_t r, uint8_t g, uint8_t b);
 void updateStateInitStage1();
 void updateStateInitStage2();
@@ -13,5 +15,6 @@ void updateStateConnecting();
 void updateStateOnLine();
 void updateStateReady();
 void updateStateBootPressed();
+void updateStateBootReleased();
 
 #endif
